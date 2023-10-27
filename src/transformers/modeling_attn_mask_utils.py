@@ -109,10 +109,19 @@ class AttentionMaskConverter:
             raise NotImplementedError("Sliding window is currently only implemented for causal masking")
 
         # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
+        # [bsz, 1, tgt_len, padding_mask_len(key_value_length)]
+        # converted, now: 0 means keep, -inf means mask
         expanded_attn_mask = self._expand_mask(attention_mask_2d, dtype, tgt_len=input_shape[-1]).to(
             attention_mask_2d.device
         )
-        expanded_4d_mask = expanded_attn_mask if causal_4d_mask is None else expanded_attn_mask + causal_4d_mask
+        # https://github.com/huggingface/transformers/pull/27114, fix two -inf in attn weights
+        # expanded_4d_mask = expanded_attn_mask if causal_4d_mask is None else expanded_attn_mask + causal_4d_mask
+        
+        if causal_4d_mask is not None:
+            expanded_attn_mask = causal_4d_mask.masked_fill(expanded_attn_mask.bool(), torch.finfo(dtype).min)
+
+        # expanded_attn_mask + causal_4d_mask can cause some overflow
+        expanded_4d_mask = expanded_attn_mask
 
         return expanded_4d_mask
 
