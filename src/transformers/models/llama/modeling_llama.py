@@ -579,7 +579,7 @@ class LlamaFlashAttention2(LlamaAttention):
             cu_seqlens_q = torch.arange(
                 batch_size + 1, dtype=torch.int32, device=query_layer.device
             )  # There is a memcpy here, that is very bad.
-            indices_q = cu_seqlens_q[:-1]
+            indices_q = cu_seqlens_q[:-1].long()
             query_layer = query_layer.squeeze(1)
         else:
             # The -q_len: slice assumes left padding.
