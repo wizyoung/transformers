@@ -18,6 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ PyTorch LLaMA model."""
+import os
 import math
 import warnings
 from typing import List, Optional, Tuple, Union
@@ -854,7 +855,10 @@ class LlamaModel(LlamaPreTrainedModel):
 
         if getattr(self.config, "_flash_attn_2_enabled", False):
             # 2d mask is passed through the layers
-            attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
+            if os.getenv("DISABLE_ATTN_MASK", False):
+                attention_mask = None
+            else:
+                attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
         else:
             # 4d mask is passed through the layers
             attention_mask = _prepare_4d_causal_attention_mask(
